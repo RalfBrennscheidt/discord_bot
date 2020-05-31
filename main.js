@@ -42,8 +42,8 @@ var current_lotro_beacon_issue;
 
 // all stuff Runescape related //
 const allows_GE_channels =  [
-	'710989901075578913', 	// test server
-	'713130722097102908'	// Brave Company
+	'710989901075578913', 	// test server - general
+	'713130722097102908'	// Brave Company - runescape
 ];	
 
 const minutes_between_info_refesh = 30;
@@ -91,7 +91,7 @@ function fetchData(array_of_IDs, message_type) {
 	var newData = '\n'; 
 	var IDs = array_of_IDs.length;
 
-	console_channel.send(`updating ${message_type}`);
+	//log_to_discord_console(`updating ${message_type}`);
 
 	array_of_IDs.forEach (function(Obj) {
 		j++
@@ -118,15 +118,12 @@ function fetchData(array_of_IDs, message_type) {
 				return;
 			}
 			res.on('data', d => {
-				
 				var data = JSON.parse(d);
 				newData = newData + `${data.item.name}: ${data.item.current.price}: ${data.item.today.price} \n`
 
 				if (j == IDs) {
 					if (typeof newData !== 'undefined') {
 						OSRS_ge_current_prices[message_type] = (OSRS_ge_current_prices[message_type] = newData) || newData;
-						
-						//message[message_type] = newData;
 					}
 				}
 			});
@@ -213,34 +210,8 @@ async function GetLatestArticleURL() {
 			reject(err.message);
 		});
 	});
+	// Thanks to Grumpyoldcoder and Samwai.
 }
-	 
-
-
-	/*
-function find_lotro_beacon_url() {
-	
-	var url = 'https://www.lotro.com/en/game/articles/'
-	https.get('https://www.lotro.com/en/game/articles', (resp) => {
-    let data = '';
-    resp.on('data', (chunk) => {
-        data += chunk;
-    });
-    resp.on('end', () => {
-        var re = /lotro-beacon-issue-\d\d\d/gm;
-		let result = data.match(re);
-		current_lotro_beacon_issue = url + result.sort(function (a, b) {return a.attr - b.attr})[0];
-		//console.log( result.sort(function (a, b) {return a.attr - b.attr})[0] );
-		//console.log(url);
-		//return url;
-    });
-	}).on("error", (err) => {
-	    console.log("Error: " + err.message);
-	});
-
-	
-}
-*/
 
 // Discord setup
 client.on('ready', () => {
@@ -260,24 +231,10 @@ client.on('message', msg => {
 
 // Command 'handler'
 client.on('message', incomming_discord_message => {
+	// command example: !lotro servers
 	if (incomming_discord_message.author.bot) return;
 	if (!incomming_discord_message.content.startsWith(prefix)) return;
 	
-	/*
-
-	command: !ge wood
-		ge
-			wood
-			ores
-			robes
-			general
-			all
-
-		ge_wood.js
-		ge_ores.js
-
-	*/
-
 	let arguments = incomming_discord_message.content.toLocaleLowerCase().slice(1).split(' ');
 	console.log(arguments);
 	let command = arguments.shift();
@@ -305,6 +262,7 @@ client.on('message', incomming_discord_message => {
 					break;
 				default:
 					if (typeof ge_command === 'undefined') return;
+
 					let information =  OSRS_ge_current_prices[ge_command];
 									
 					if (typeof information !== 'undefined') {
@@ -422,11 +380,11 @@ setInterval(function() {
 
 //give the bot time to connect, then call OSRS GE
 setTimeout(function() {
+	log_to_discord_console('updating Runescape information')
 	let extra_delay = 0;
 	for (let [key, value] of Object.entries(itemIDs)) {
 		extra_delay = extra_delay + 2500;
 		setTimeout(function() {
-			//console.log(value);
 			console.log(key);
 			fetchData(value, key.slice(0, -4));
 		}, extra_delay);
@@ -436,8 +394,5 @@ setTimeout(function() {
 
 // true startup //
 update_info();
-//GetLatestArticleURL()
-//find_lotro_beacon_url()
-//console.log(find_lotro_beacon_url());
 
 client.login(bot_config.bot_key);
