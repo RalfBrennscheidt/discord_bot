@@ -2,8 +2,13 @@ const Discord = require('discord.js');
 const https = require('https');
 const pingMonitor = require('ping-monitor');
 
+const general = require('./modules/general.js');
+const runescape = require('./modules/runescape.js');
+const messages = require('./modules/messages.js');
+const urls = require('./modules/urls.js');
+
 // botkey //
-const bot_config = require('./botConfig.json');
+const bot_key = require('./bot_key.json').bot_key;
 
 // Discord //
 const client = new Discord.Client();
@@ -16,8 +21,6 @@ const discord_server_admins = [
 // all stuff Lotro related //
 var ping_monitor_interval = 1; // minutes
 var lotro_server_status = true;
-const lotro_server_online = 'Lotro servers are up';
-const lotro_server_offline = 'Lotro servers are down';
 
 const lotro_server_ips = 	[
 	'198.252.160.98', 	// Arkenstone
@@ -46,96 +49,21 @@ const allows_GE_channels =  [
 	'713130722097102908'	// Brave Company - runescape
 ];	
 
-const minutes_between_info_refesh = 30;
-const interval_between_info_refresh = minutes_between_info_refesh * 60 * 1000;
-
-//https://www.osrsbox.com/tools/item-search/
-const itemIDs = {
-	general_IDs : [1935, 1033, 314 , 1511, 1513, 1515, 1517, 1519, 1521, 1381, 1387, 1925],
-	wood_IDs : [1511, 1513, 1515, 1517, 1519, 1521 ],
-	ores_IDs : [436 , 438 , 440 , 442 , 444 , 447 , 449 , 451],
-	bars_IDs : [2349, 2351, 2353, 2355, 2357, 2359, 2361, 2363],
-	magicrunes_IDs : [554 , 555 , 556 , 559 , 560 , 561 , 563 , 564 , 1436, 7936],
-	zamorak_IDs : [1033, 1035, 245 , 2653, 2655, 2657, 2659, 3478],
-	guthix_IDs : [2669, 2671, 2673, 2675, 3480],
-	saradomin_IDs : [2661, 2663, 2665, 2667, 3479],
-	robes_IDs : [542 , 544 , 1033, 1035, 577 , 581 , 7390, 7394 , 7392, 7396 , 12449 , 12451]
-}
-
-var OSRS_ge_current_prices = {};
-
 // console for debugging //
 var console_channel;
-const console_channel_ID = '711994899544670230';
-const console_server_ID = '710989900605816963';
+
 
 // timeout settings //
 var people_on_timeout = {};
 const max_before_message_timeout = 5;
 const time_to_reset_message_timeout = 5; // minutes
 const interval_to_reset_message_timneout = time_to_reset_message_timeout * 60 * 1000;
-const message_on_timeout_counter = `Slow down please, I'm not fast enough!`;
 
 // General //
-const no_permission_to_use_request = 'You have no permission to use this command';
-const OSRS_error_message = 'no info loaded or no valid command';
-const no_command_available = 'no command found'
 const prefix = '!';
-const brave_bot_command_list = 'http://archosaur.nl/bravebot.html';
-const version = '1.0.0';
+const version = '1.1.0';
 
 // functions //
-function fetchData(array_of_IDs, message_type) {
-	var i = 0;
-	var j = 0;
-	var newData = '\n'; 
-	var IDs = array_of_IDs.length;
-
-	//log_to_discord_console(`updating ${message_type}`);
-
-	array_of_IDs.forEach (function(Obj) {
-		j++
-		if (Obj == 0) {
-			console.log('invalid itemID');
-			return;
-		}
-		if (Obj == undefined) return;
-
-		var options = {
-			hostname: 'services.runescape.com',
-			path: '/m=itemdb_oldschool/api/catalogue/detail.json?item=' + Obj,
-			method: 'GET'
-		}
-
-		const req = https.request(options, res => {
-			//console.log(`statusCode: ${res.statusCode}`);
-			if (res.statusCode == '404') {
-				console.log(`error 404: OSRS ${Obj}`);
-				return;
-			}
-			if (res.statusCode == '503') {
-				console.log(`error 503: OSRS ${Obj}`);
-				return;
-			}
-			res.on('data', d => {
-				var data = JSON.parse(d);
-				newData = newData + `${data.item.name}: ${data.item.current.price}: ${data.item.today.price} \n`
-
-				if (j == IDs) {
-					if (typeof newData !== 'undefined') {
-						OSRS_ge_current_prices[message_type] = (OSRS_ge_current_prices[message_type] = newData) || newData;
-					}
-				}
-			});
-		});
-		
-		req.on('error', error => {
-			console.error(`Error message 1\n ${error}`);
-		});
-
-		req.end();
-	});
-}
 
 function log_to_discord_console(to_log_thingy) {
 	if (typeof console_channel === 'undefined') return;
@@ -158,7 +86,7 @@ function check_people_for_timeout(userID) {
 }
 
 function alert_people_on_timeout(messageObject) {
-	messageObject.reply(message_on_timeout_counter);
+	messageObject.reply(messages.discord_reply_on_timeout);
 }
 
 function reply_back_to_user(messageObject, message) {
@@ -168,20 +96,6 @@ function reply_back_to_user(messageObject, message) {
 	}
 	messageObject.reply(message);
 }
-
-function update_info() {
-	var extra_delay = 0;
-	for (let [key, value] of Object.entries(itemIDs)) {
-		extra_delay = extra_delay + 2000;
-		
-		setTimeout(function() {
-			setInterval(function() {
-				fetchData(value.slice(-3), key);
-			}, interval_between_info_refresh);
-		}, extra_delay);
-	}
-}
-
 
 async function GetLatestArticleURL() {
 	const baseURL = 'https://www.lotro.com/en/game/articles';
@@ -216,7 +130,7 @@ async function GetLatestArticleURL() {
 // Discord setup
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!`);
-	console_channel = client.guilds.cache.find(guilds => guilds.id === console_server_ID).channels.cache.find(channels => channels.id === console_channel_ID);
+	console_channel = client.guilds.cache.find(guilds => guilds.id === general.console_server_ID).channels.cache.find(channels => channels.id === general.console_channel_ID);
 	log_to_discord_console('Bot startup!');
 });
 
@@ -241,34 +155,36 @@ client.on('message', incomming_discord_message => {
 
 	switch(command){
 		case 'help':
-			reply_back_to_user(incomming_discord_message, 'List of commands: ' + brave_bot_command_list);
+			reply_back_to_user(incomming_discord_message, 'List of commands: ' + urls.brave_bot_command_list);
 			break;
 		case 'commands':
-			reply_back_to_user(incomming_discord_message, 'List of commands: ' + brave_bot_command_list);
+			reply_back_to_user(incomming_discord_message, 'List of commands: ' + urls.brave_bot_command_list);
 			break;
 		case 'ge':
+			if (!allows_GE_channels.includes(incomming_discord_message.channel.id)) return;
+			
 			let ge_command = arguments.shift();
 			let new_message = client.guilds.cache.find(guilds => guilds.id === incomming_discord_message.channel.guild.id).channels.cache.find(channels => channels.id === incomming_discord_message.channel.id);
 			switch(ge_command) {
 				case 'all':
 					if (incomming_discord_message.author.username === 'Archosaur' && incomming_discord_message.author.id === '367767515771830309') {
-						for (let [key, value] of Object.entries(OSRS_ge_current_prices)) {
+						for (let [key, value] of Object.entries(runescape.OSRS_ge_current_prices)) {
 							new_message.send(value);
 							console.log(value);
 						}
 					} else {
-						reply_back_to_user(no_permission_to_use_request);
+						reply_back_to_user(messages.no_permission_to_use_command);
 					}
 					break;
 				default:
 					if (typeof ge_command === 'undefined') return;
 
-					let information =  OSRS_ge_current_prices[ge_command];
+					let information =  runescape.OSRS_ge_current_prices[ge_command];
 									
 					if (typeof information !== 'undefined') {
 						reply_back_to_user(incomming_discord_message, information);
 					} else if (typeof information === 'undefined') {
-						reply_back_to_user(incomming_discord_message, OSRS_error_message);
+						reply_back_to_user(incomming_discord_message, runescape.OSRS_error_message);
 					}
 			}
 			break;
@@ -277,7 +193,7 @@ client.on('message', incomming_discord_message => {
 			switch(get_command) {
 				case 'info':
 					if (incomming_discord_message.author.username === 'Archosaur') {
-					console.log(msg);
+					console.log(incomming_discord_message);
 					console_channel.send( '\n' +
 						incomming_discord_message.channel.guild.name + '\n' +
 						incomming_discord_message.channel.guild.id + '\n' +
@@ -287,7 +203,7 @@ client.on('message', incomming_discord_message => {
 						incomming_discord_message.author.id
 					);
 					} else {
-						incomming_discord_message.reply(no_permission_to_use_request);
+						incomming_discord_message.reply(messages.no_permission_to_use_command);
 					}
 					break;
 				case 'userinfo':
@@ -299,6 +215,13 @@ client.on('message', incomming_discord_message => {
 						'last message ID:  ' + incomming_discord_message.author.lastMessageID + '\n' +
 						'joined at (Unix):   ' + incomming_discord_message.channel.guild.joinedTimestamp
 					);
+				case 'botinfo':
+					reply_back_to_user(incomming_discord_message, '\n' +
+						'bot name:             ' + 'Brave Bot' + '\n' +
+						'bot version:          ' + version + '\n' +
+						'bot startup time: ' + general.timestamp_to_string(client.readyTimestamp) + '\n' +
+						'bot uptime:           ' + general.uptime_to_string(client.uptime) + '\n'
+					);
 			}
 			break;
 		case 'coffee':
@@ -308,12 +231,11 @@ client.on('message', incomming_discord_message => {
 			let lotro_command = arguments.shift()
 			if (lotro_command === 'servers') {
 				if (lotro_server_status) {
-					incomming_discord_message.reply(lotro_server_online);
+					incomming_discord_message.reply(messages.lotro_server_online);
 				} else {
-					incomming_discord_message.reply(lotro_server_offline);
+					incomming_discord_message.reply(messages.lotro_server_offline);
 				}
 			} else if (lotro_command === 'beacon') {
-				console.log('we are here');
 				GetLatestArticleURL().then((latestArticleURL) => {
 					console.log(latestArticleURL);
 					reply_back_to_user(incomming_discord_message, latestArticleURL);
@@ -321,8 +243,11 @@ client.on('message', incomming_discord_message => {
 				
 			} 
 			break;
+		case 'github':
+			reply_back_to_user(incomming_discord_message, urls.github_brave_bot);
+			break;
 		default:
-			reply_back_to_user(incomming_discord_message, no_command_available);
+			reply_back_to_user(incomming_discord_message, messages.no_command_available);
 	}
 });
 
@@ -332,7 +257,7 @@ myPingMonitor.on('up', function (res, state) {
 	if (ping_monitor_interval != 5) {
 		console.log('Yay!! ' + res.address + ':' + res.port + ' is up.');
 		setTimeout(function() {
-			log_to_discord_console(lotro_server_online);
+			log_to_discord_console(messages.lotro_server_online);
 		}, 1000);
 		
 	}
@@ -360,7 +285,7 @@ myPingMonitor.on('error', function (error, res) {
 		if (ping_monitor_interval != 1) {
 			console.log('Oh Snap!! ' + res.address + ':' + res.port + ' is down! ');
 			setTimeout(function() {
-				log_to_discord_console(lotro_server_offline);
+				log_to_discord_console(messages.lotro_server_offline);
 			}, 1000);
 		}
 		ping_monitor_interval = 1;
@@ -378,21 +303,8 @@ setInterval(function() {
 	people_on_timeout = {};
 }, interval_to_reset_message_timneout);
 
-//give the bot time to connect, then call OSRS GE
-setTimeout(function() {
-	log_to_discord_console('updating Runescape information')
-	let extra_delay = 0;
-	for (let [key, value] of Object.entries(itemIDs)) {
-		extra_delay = extra_delay + 2500;
-		setTimeout(function() {
-			console.log(key);
-			fetchData(value, key.slice(0, -4));
-		}, extra_delay);
-	}
-}, 2000);
-
-
 // true startup //
-update_info();
+runescape.update_ge_prices();
+runescape.keep_ge_uptodate();
 
-client.login(bot_config.bot_key);
+client.login(bot_key);

@@ -1,0 +1,40 @@
+x.0.0   Mayor code change, new style, general rewrite
+0.x.0   new features, new set of commands
+0.0.x   new commands to excisting set, bug fixes, general maintaintenes
+
+
+v 1.1.0
+    moved to modules
+        general vars
+        general functions
+        runescape
+        messages const
+        urls const
+    added  
+        github command 
+    bugfix
+        timestamp nog give proper hour
+        uptime now gives a daycount 
+
+v 1.0.1
+    added
+        get botinfo
+    bug fixes
+        ge commands nolonger useable in not allowed channels, check wasn't coppied over
+
+v 1.0.0
+    initial release to Github
+    commandhandeler with nested switch
+    external bot key
+    commands:
+        runescape oldschool ge prices
+        lotro server status
+        lotro beacon
+        player info
+        channel info
+        coffee
+        help / commands
+    known issues:
+        info not saved, will be lost when bot crashes or is stopped
+        nested switch is annoying
+        lots of clutter on the console
