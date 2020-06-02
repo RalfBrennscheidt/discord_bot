@@ -1,26 +1,32 @@
+/* required modules */
 const Discord = require('discord.js');
 const https = require('https');
 const pingMonitor = require('ping-monitor');
 
 const general = require('./modules/general.js');
 const runescape = require('./modules/runescape.js');
-const messages = require('./modules/messages.js');
-const urls = require('./modules/urls.js');
+
+// Load bot config
+const bot_config = require('./bot_config.json');
+// Load system strings
+const systemStrings = require('./strings.json');
+
+//#region  constants
 
 // botkey //
-const bot_key = require('./bot_key.json').bot_key;
+const bot_key = bot_config.bot_key;
 
 // Discord //
 const client = new Discord.Client();
-var connected_to_discord = false;
+let connected_to_discord = false;
 
 const discord_server_admins = [
-	'367767515771830309',	// Archosaur
+	'367767515771830309'	// Archosaur
 ]
 
 // all stuff Lotro related //
-var ping_monitor_interval = 1; // minutes
-var lotro_server_status = true;
+let ping_monitor_interval = 1; // minutes
+let lotro_server_status = true;
 
 const lotro_server_ips = 	[
 	'198.252.160.98', 	// Arkenstone
@@ -35,14 +41,6 @@ const lotro_server_ips = 	[
 	'198.252.160.107'	// Sirannon
 ];
 
-const myPingMonitor = new pingMonitor({
-	address: 	lotro_server_ips[2],
-	port:		9000,
-    interval: 	ping_monitor_interval
-});
-
-var current_lotro_beacon_issue;
-
 // all stuff Runescape related //
 const allows_GE_channels =  [
 	'710989901075578913', 	// test server - general
@@ -50,11 +48,12 @@ const allows_GE_channels =  [
 ];	
 
 // console for debugging //
-var console_channel;
+let console_channel;
 
+let current_lotro_beacon_issue;
 
 // timeout settings //
-var people_on_timeout = {};
+let people_on_timeout = {};
 const max_before_message_timeout = 5;
 const time_to_reset_message_timeout = 5; // minutes
 const interval_to_reset_message_timneout = time_to_reset_message_timeout * 60 * 1000;
@@ -63,7 +62,16 @@ const interval_to_reset_message_timneout = time_to_reset_message_timeout * 60 * 
 const prefix = '!';
 const version = '1.1.0';
 
-// functions //
+//#endregion
+
+
+/* functions */
+
+const myPingMonitor = new pingMonitor({
+	address: 	lotro_server_ips[2],
+	port:		9000,
+    interval: 	ping_monitor_interval
+});
 
 function log_to_discord_console(to_log_thingy) {
 	if (typeof console_channel === 'undefined') return;
@@ -86,7 +94,7 @@ function check_people_for_timeout(userID) {
 }
 
 function alert_people_on_timeout(messageObject) {
-	messageObject.reply(messages.discord_reply_on_timeout);
+	messageObject.reply(systemStrings.discord_reply_on_timeout);
 }
 
 function reply_back_to_user(messageObject, message) {
@@ -111,7 +119,7 @@ async function GetLatestArticleURL() {
 	   
 		// Event: response ended - we received all data
 		resp.on('end', () => {
-			var re = /lotro-beacon-issue-\d\d\d/gm; // define a "regular expression"
+			let re = /lotro-beacon-issue-\d\d\d/gm; // define a "regular expression"
 			let result = data.match(re); // match data against our regular expression
 			// take the result from regular expression and sort it by last
 			resolve(baseURL + '/' + result.sort(function (a, b) {
@@ -130,13 +138,13 @@ async function GetLatestArticleURL() {
 // Discord setup
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!`);
-	console_channel = client.guilds.cache.find(guilds => guilds.id === general.console_server_ID).channels.cache.find(channels => channels.id === general.console_channel_ID);
+	console_channel = client.guilds.cache.find(guilds => guilds.id === bot_config.console_server_ID).channels.cache.find(channels => channels.id === bot_config.console_channel_ID);
 	log_to_discord_console('Bot startup!');
 });
 
 // ping pong
 client.on('message', msg => {
-	if (msg.author.bot) return;
+	if (msg.author.bot) return; // ignore bot messages to avoid loops
 	
 	if (msg.content === 'ping') {
 		reply_back_to_user(msg, 'pong');
@@ -155,10 +163,10 @@ client.on('message', incomming_discord_message => {
 
 	switch(command){
 		case 'help':
-			reply_back_to_user(incomming_discord_message, 'List of commands: ' + urls.brave_bot_command_list);
+			reply_back_to_user(incomming_discord_message, 'List of commands: ' + bot_config.brave_bot_command_list);
 			break;
 		case 'commands':
-			reply_back_to_user(incomming_discord_message, 'List of commands: ' + urls.brave_bot_command_list);
+			reply_back_to_user(incomming_discord_message, 'List of commands: ' + bot_config.brave_bot_command_list);
 			break;
 		case 'ge':
 			if (!allows_GE_channels.includes(incomming_discord_message.channel.id)) return;
@@ -173,7 +181,7 @@ client.on('message', incomming_discord_message => {
 							console.log(value);
 						}
 					} else {
-						reply_back_to_user(messages.no_permission_to_use_command);
+						reply_back_to_user(systemStrings.no_permission_to_use_command);
 					}
 					break;
 				default:
@@ -203,7 +211,7 @@ client.on('message', incomming_discord_message => {
 						incomming_discord_message.author.id
 					);
 					} else {
-						incomming_discord_message.reply(messages.no_permission_to_use_command);
+						incomming_discord_message.reply(systemStrings.no_permission_to_use_command);
 					}
 					break;
 				case 'userinfo':
@@ -231,9 +239,9 @@ client.on('message', incomming_discord_message => {
 			let lotro_command = arguments.shift()
 			if (lotro_command === 'servers') {
 				if (lotro_server_status) {
-					incomming_discord_message.reply(messages.lotro_server_online);
+					incomming_discord_message.reply(systemStrings.lotro_server_online);
 				} else {
-					incomming_discord_message.reply(messages.lotro_server_offline);
+					incomming_discord_message.reply(systemStrings.lotro_server_offline);
 				}
 			} else if (lotro_command === 'beacon') {
 				GetLatestArticleURL().then((latestArticleURL) => {
@@ -244,10 +252,10 @@ client.on('message', incomming_discord_message => {
 			} 
 			break;
 		case 'github':
-			reply_back_to_user(incomming_discord_message, urls.github_brave_bot);
+			reply_back_to_user(incomming_discord_message, bot_config.github_brave_bot);
 			break;
 		default:
-			reply_back_to_user(incomming_discord_message, messages.no_command_available);
+			reply_back_to_user(incomming_discord_message, systemStrings.no_command_available);
 	}
 });
 
@@ -257,7 +265,7 @@ myPingMonitor.on('up', function (res, state) {
 	if (ping_monitor_interval != 5) {
 		console.log('Yay!! ' + res.address + ':' + res.port + ' is up.');
 		setTimeout(function() {
-			log_to_discord_console(messages.lotro_server_online);
+			log_to_discord_console(systemStrings.lotro_server_online);
 		}, 1000);
 		
 	}
@@ -285,7 +293,7 @@ myPingMonitor.on('error', function (error, res) {
 		if (ping_monitor_interval != 1) {
 			console.log('Oh Snap!! ' + res.address + ':' + res.port + ' is down! ');
 			setTimeout(function() {
-				log_to_discord_console(messages.lotro_server_offline);
+				log_to_discord_console(systemStrings.lotro_server_offline);
 			}, 1000);
 		}
 		ping_monitor_interval = 1;

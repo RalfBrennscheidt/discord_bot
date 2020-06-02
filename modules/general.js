@@ -1,8 +1,3 @@
-
-
-const console_channel_ID = '711994899544670230';
-const console_server_ID = '710989900605816963';
-
 function unix_timestamp_to_date_string(unix_time = 0) {
 	let date = new Date(unix_time);
 	let return_string = '';

@@ -16,13 +16,13 @@ const itemIDs = {
 const minutes_between_info_refesh = 30;
 const interval_between_info_refresh = minutes_between_info_refesh * 60 * 1000;
 
-var OSRS_ge_current_prices = {};
+let OSRS_ge_current_prices = {};
 
 function fetchData(array_of_IDs, message_type) {
-	var i = 0;
-	var j = 0;
-	var newData = '\n'; 
-	var IDs = array_of_IDs.length;
+	let i = 0;
+	let j = 0;
+	let newData = '\n'; 
+	let IDs = array_of_IDs.length;
 
 	array_of_IDs.forEach (function(Obj) {
 		j++
@@ -32,7 +32,7 @@ function fetchData(array_of_IDs, message_type) {
 		}
 		if (Obj == undefined) return;
 
-		var options = {
+		let options = {
 			hostname: 'services.runescape.com',
 			path: '/m=itemdb_oldschool/api/catalogue/detail.json?item=' + Obj,
 			method: 'GET'
@@ -49,7 +49,7 @@ function fetchData(array_of_IDs, message_type) {
 				return;
 			}
 			res.on('data', d => {
-				var data = JSON.parse(d);
+				let data = JSON.parse(d);
 				newData = newData + `${data.item.name}: ${data.item.current.price}: ${data.item.today.price} \n`
 
 				if (j == IDs) {
