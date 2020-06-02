@@ -37,5 +37,3 @@ function unix_uptime_to_date_string(unix_time = 0) {
 
 module.exports.timestamp_to_string = unix_timestamp_to_date_string;
 module.exports.uptime_to_string = unix_uptime_to_date_string;
-module.exports.console_channel_ID = console_channel_ID;
-module.exports.console_server_ID = console_server_ID;

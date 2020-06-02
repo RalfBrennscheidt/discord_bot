@@ -17,7 +17,7 @@ const systemStrings = require('./strings.json');
 const bot_key = bot_config.bot_key;
 
 // Discord //
-const client = new Discord.Client();
+const discordClient = new Discord.Client();
 let connected_to_discord = false;
 
 const discord_server_admins = [
@@ -136,14 +136,14 @@ async function GetLatestArticleURL() {
 }
 
 // Discord setup
-client.on('ready', () => {
-	console.log(`Logged in as ${client.user.tag}!`);
-	console_channel = client.guilds.cache.find(guilds => guilds.id === bot_config.console_server_ID).channels.cache.find(channels => channels.id === bot_config.console_channel_ID);
+discordClient.on('ready', () => {
+	console.log(`Logged in as ${discordClient.user.tag}!`);
+	console_channel = discordClient.guilds.cache.find(guilds => guilds.id === bot_config.console_server_ID).channels.cache.find(channels => channels.id === bot_config.console_channel_ID);
 	log_to_discord_console('Bot startup!');
 });
 
 // ping pong
-client.on('message', msg => {
+discordClient.on('message', msg => {
 	if (msg.author.bot) return; // ignore bot messages to avoid loops
 	
 	if (msg.content === 'ping') {
@@ -152,7 +152,7 @@ client.on('message', msg => {
 });
 
 // Command 'handler'
-client.on('message', incomming_discord_message => {
+discordClient.on('message', incomming_discord_message => {
 	// command example: !lotro servers
 	if (incomming_discord_message.author.bot) return;
 	if (!incomming_discord_message.content.startsWith(prefix)) return;
@@ -172,7 +172,7 @@ client.on('message', incomming_discord_message => {
 			if (!allows_GE_channels.includes(incomming_discord_message.channel.id)) return;
 			
 			let ge_command = arguments.shift();
-			let new_message = client.guilds.cache.find(guilds => guilds.id === incomming_discord_message.channel.guild.id).channels.cache.find(channels => channels.id === incomming_discord_message.channel.id);
+			let new_message = discordClient.guilds.cache.find(guilds => guilds.id === incomming_discord_message.channel.guild.id).channels.cache.find(channels => channels.id === incomming_discord_message.channel.id);
 			switch(ge_command) {
 				case 'all':
 					if (incomming_discord_message.author.username === 'Archosaur' && incomming_discord_message.author.id === '367767515771830309') {
@@ -227,8 +227,8 @@ client.on('message', incomming_discord_message => {
 					reply_back_to_user(incomming_discord_message, '\n' +
 						'bot name:             ' + 'Brave Bot' + '\n' +
 						'bot version:          ' + version + '\n' +
-						'bot startup time: ' + general.timestamp_to_string(client.readyTimestamp) + '\n' +
-						'bot uptime:           ' + general.uptime_to_string(client.uptime) + '\n'
+						'bot startup time: ' + general.timestamp_to_string(discordClient.readyTimestamp) + '\n' +
+						'bot uptime:           ' + general.uptime_to_string(discordClient.uptime) + '\n'
 					);
 			}
 			break;
@@ -315,4 +315,4 @@ setInterval(function() {
 runescape.update_ge_prices();
 runescape.keep_ge_uptodate();
 
-client.login(bot_key);
+discordClient.login(bot_key);
